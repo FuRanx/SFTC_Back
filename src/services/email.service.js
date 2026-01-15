@@ -1,16 +1,17 @@
 const nodemailer = require('nodemailer');
 
-// Configuración del transporter mejorada para la nube
+// Configuración "Plan B" para evasión de bloqueos en la nube
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
+  host: "smtp.googlemail.com", // <--- CAMBIO CLAVE: Usamos el alias antiguo, suele funcionar mejor
+  port: 587,                   // <--- Regresamos al 587 (STARTTLS)
+  secure: false,               // <--- OBLIGATORIO: false para puerto 587
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
-  family: 4,               // <--- ESTA LINEA ES LA CLAVE
+  family: 4,                   // <--- MANTENEMOS: Forzar IPv4
   tls: {
+    ciphers: 'SSLv3',          // Ayuda con compatibilidad antigua
     rejectUnauthorized: false
   },
   connectionTimeout: 10000
