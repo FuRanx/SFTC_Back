@@ -37,6 +37,8 @@ const isConfigured = validateSmtpConfig();
 
 // Crear transporter solo si está configurado
 let transporter = null;
+let smtpHost = null;
+let smtpPort = null;
 
 if (isConfigured) {
   // Detectar proveedor SMTP común para configuraciones optimizadas
@@ -44,10 +46,15 @@ if (isConfigured) {
   let port = parseInt(process.env.SMTP_PORT || '587', 10);
   let secure = process.env.SMTP_SECURE === 'true';
   
+  // Guardar para usar en logs
+  smtpHost = process.env.SMTP_HOST;
+  smtpPort = port;
+  
   // Configuraciones automáticas para proveedores comunes
   if (host.includes('gmail')) {
     port = 587;
     secure = false;
+    smtpPort = 587; // Actualizar para logs
     console.log('📧 Detectado Gmail SMTP, usando puerto 587 con STARTTLS');
   } else if (host.includes('outlook') || host.includes('office365') || host.includes('hotmail')) {
     port = 587;
@@ -167,7 +174,7 @@ async function sendEmail(to, subject, html, attachments = []) {
     
     const smtpInfo = transporter.options.service 
       ? `Servicio: ${transporter.options.service}` 
-      : `SMTP: ${process.env.SMTP_HOST}:${transporter.options.port || 'N/A'}`;
+      : `SMTP: ${smtpHost || process.env.SMTP_HOST}:${smtpPort || transporter.options?.port || 'N/A'}`;
     console.log(`📤 Intentando enviar correo a: ${to} (${smtpInfo})`);
     const info = await transporter.sendMail(mailOptions);
     console.log('✅ Correo enviado exitosamente a:', to, 'MessageId:', info.messageId);
@@ -365,17 +372,39 @@ async function verifyConnection() {
   }
   
   try {
-    console.log(`🔍 Verificando conexión SMTP a ${process.env.SMTP_HOST}:${transporter.options.port}...`);
+    // Usar las variables guardadas o intentar obtener del transporter
+    const host = smtpHost || process.env.SMTP_HOST || 'N/A';
+    const port = smtpPort || transporter.options?.port || transporter.options?.service || 'N/A';
+    const serviceInfo = transporter.options?.service ? ` (servicio: ${transporter.options.service})` : '';
+    
+    console.log(`🔍 Verificando conexión SMTP a ${host}:${port}${serviceInfo}...`);
     await transporter.verify();
     console.log('✅ Servidor SMTP listo para enviar correos');
     return true;
   } catch (error) {
     console.error('❌ Error de conexión SMTP:', error.message);
-    if (error.code === 'ETIMEDOUT') {
-      console.error('   Timeout al conectar. Verifica:');
-      console.error('   - Que el servidor SMTP sea accesible desde Railway');
-      console.error('   - Que el puerto no esté bloqueado');
-      console.error('   - Que Railway tenga permisos para conectarse');
+    if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
+      console.error('');
+      console.error('   ⚠️  TIMEOUT: Gmail frecuentemente bloquea conexiones desde servidores cloud como Railway.');
+      console.error('');
+      console.error('   💡 SOLUCIÓN RECOMENDADA: Usa SendGrid en lugar de Gmail');
+      console.error('');
+      console.error('   📋 Pasos para cambiar a SendGrid:');
+      console.error('   1. Crea cuenta gratuita en https://sendgrid.com (100 emails/día gratis)');
+      console.error('   2. Ve a Settings > API Keys y crea un nuevo API Key con permisos "Mail Send"');
+      console.error('   3. En Railway, actualiza las variables de entorno:');
+      console.error('      SMTP_HOST=smtp.sendgrid.net');
+      console.error('      SMTP_PORT=587');
+      console.error('      SMTP_SECURE=false');
+      console.error('      SMTP_USER=apikey');
+      console.error('      SMTP_PASS=SG.xxxxxxxxxxxxx (tu API key de SendGrid)');
+      console.error('');
+      console.error('   🔄 Después de cambiar, reinicia el servicio en Railway.');
+      console.error('');
+    } else if (error.code === 'EAUTH') {
+      console.error('   ⚠️  Error de autenticación. Verifica:');
+      console.error('   - Que SMTP_USER y SMTP_PASS sean correctos');
+      console.error('   - Para Gmail: usa una "Contraseña de aplicación", no tu contraseña normal');
     }
     return false;
   }
