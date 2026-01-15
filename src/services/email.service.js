@@ -14,19 +14,18 @@ const nodemailer = require('nodemailer');
 
 // Configuración del transporter mejorada para la nube
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT) || 465, // Asegurar que sea número
-  secure: process.env.SMTP_SECURE === 'true', 
+  host: "smtp.gmail.com",    // Host directo
+  port: 465,                 // Puerto 465 (SSL)
+  secure: true,              // TRUE es obligatorio para el puerto 465
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
-  // --- AGREGA ESTO ---
-  family: 4, // Fuerza a usar IPv4 (crucial para Gmail en Railway/Docker)
-  connectionTimeout: 10000, // Espera 10 segundos antes de rendirse
+  family: 4,                 // <--- ¡ESTO ES LO QUE TE FALTA! Fuerza IPv4
   tls: {
-    rejectUnauthorized: false // Ayuda a evitar errores de certificados en desarrollo
-  }
+    rejectUnauthorized: false // Evita errores de certificados
+  },
+  connectionTimeout: 10000   // 10 segundos de espera
 });
 
 /**
