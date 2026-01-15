@@ -4,11 +4,18 @@ const nodemailer = require('nodemailer');
 // Se recomienda usar variables de entorno para estos valores
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
+  port: parseInt(process.env.SMTP_PORT || '587', 10),
   secure: process.env.SMTP_SECURE === 'true', // true para 465, false para otros puertos
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
+  },
+  connectionTimeout: 30000, // 30 segundos para establecer conexión
+  greetingTimeout: 30000, // 30 segundos para recibir saludo
+  socketTimeout: 30000, // 30 segundos para operaciones de socket
+  // Opciones adicionales para mejorar la conexión
+  tls: {
+    rejectUnauthorized: false, // No rechazar certificados autofirmados (útil para desarrollo)
   },
 });
 
@@ -18,6 +25,7 @@ const transporter = nodemailer.createTransport({
  * @param {string} subject - Asunto
  * @param {string} html - Contenido HTML
  * @param {Array} attachments - Archivos adjuntos [{filename, content, contentType}]
+ * @returns {Object} {success: boolean, info: Object|null, error: Error|null}
  */
 async function sendEmail(to, subject, html, attachments = []) {
   try {
@@ -38,13 +46,14 @@ async function sendEmail(to, subject, html, attachments = []) {
     }
     
     const info = await transporter.sendMail(mailOptions);
-    console.log('Correo enviado: %s', info.messageId);
-    return info;
+    console.log('Correo enviado exitosamente a:', to, 'MessageId:', info.messageId);
+    return { success: true, info, error: null };
   } catch (error) {
-    console.error('Error enviando correo:', error);
-    // No lanzamos el error para no interrumpir flujos principales si el correo falla,
-    // pero podrías querer manejarlo diferente según el caso.
-    return null;
+    console.error('Error enviando correo a', to, ':', error.message);
+    if (error.code === 'ETIMEDOUT') {
+      console.error('Timeout al conectar con el servidor SMTP. Verifica la configuración SMTP_HOST, SMTP_PORT y la conectividad de red.');
+    }
+    return { success: false, info: null, error };
   }
 }
 
@@ -141,6 +150,7 @@ async function enviarFacturaPorEmail(emailCliente, datosFactura, pdfBuffer, xmlC
  * @param {string} to - Email del destinatario
  * @param {string} nombre - Nombre del usuario
  * @param {string} token - Token de verificación
+ * @returns {Object} {success: boolean, info: Object|null, error: Error|null}
  */
 async function enviarCorreoVerificacion(to, nombre, token) {
   const baseUrl = process.env.FRONTEND_URL || 'http://localhost:4200';

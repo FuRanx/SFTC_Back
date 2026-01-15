@@ -810,8 +810,9 @@ async function enviarFacturaPorEmail(id_factura, email_cliente, enviar_automatic
       xmlContent
     );
     
-    if (!emailResult) {
-      throw new Error('No se pudo enviar el correo electrónico. Verifique la configuración SMTP.');
+    if (!emailResult.success) {
+      const errorMsg = emailResult.error?.message || 'Error desconocido al enviar correo';
+      throw new Error(`No se pudo enviar el correo electrónico: ${errorMsg}. Verifique la configuración SMTP.`);
     }
     
     // Si se envía automáticamente y hay flag en la factura, actualizar
@@ -826,7 +827,7 @@ async function enviarFacturaPorEmail(id_factura, email_cliente, enviar_automatic
       ok: true,
       mensaje: 'Factura enviada por correo electrónico exitosamente',
       email: email_cliente,
-      messageId: emailResult.messageId
+      messageId: emailResult.info?.messageId
     };
   } catch (error) {
     console.error('Error enviando factura por email:', error);
