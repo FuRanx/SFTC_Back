@@ -93,7 +93,7 @@ exports.solicitarRecuperacion = async (req, res) => {
     const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     
     // Enviar correo
-    const link = `${process.env.FRONTEND_URL || 'http://localhost:4200'}/resetear-contrasena?token=${token}`;
+    const link = `http://localhost:4200/resetear-contrasena?token=${token}`; // Ajustar URL según entorno
     const html = `
       <h1>Recuperación de Contraseña</h1>
       <p>Has solicitado restablecer tu contraseña.</p>
@@ -102,23 +102,13 @@ exports.solicitarRecuperacion = async (req, res) => {
       <p>Si no solicitaste esto, ignora este correo.</p>
     `;
 
-    const emailResult = await emailService.sendEmail(correo, 'Recuperación de Contraseña - S.F.T.C.', html);
+    await emailService.sendEmail(correo, 'Recuperación de Contraseña - S.F.T.C.', html);
     
-    if (emailResult.success) {
-      console.log('Correo de recuperación de contraseña enviado exitosamente a:', correo);
-    } else {
-      console.error('Error enviando correo de recuperación de contraseña a:', correo);
-      console.error('Detalles del error:', emailResult.error?.message || 'Error desconocido');
-      // No lanzamos el error para no revelar si el correo existe o no (por seguridad)
-    }
-    
-    // Siempre retornamos el mismo mensaje (por seguridad, no revelamos si el correo existe)
     res.json({ 
       mensaje: 'Si el correo existe, se ha enviado un enlace de recuperación.',
       token: token // TODO: Remover en producción real cuando se guarde en BD
     });
   } catch (err) {
-    console.error('Error en solicitarRecuperacion:', err);
     res.status(500).json({ error: err.message });
   }
 };

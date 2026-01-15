@@ -288,12 +288,11 @@ async function registerAdmin(nombre, correo, contrasena) {
     console.log('Administrador registrado exitosamente con ID:', idUsuario);
 
     // Enviar correo de verificación
-    const emailResult = await emailService.enviarCorreoVerificacion(correo, nombre, token);
-    if (emailResult.success) {
-      console.log('Correo de verificación enviado exitosamente a:', correo);
-    } else {
-      console.error('Error enviando correo de verificación a:', correo);
-      console.error('Detalles del error:', emailResult.error?.message || 'Error desconocido');
+    try {
+      await emailService.enviarCorreoVerificacion(correo, nombre, token);
+      console.log('Correo de verificación enviado a:', correo);
+    } catch (error) {
+      console.error('Error enviando correo de verificación:', error);
       // No lanzamos el error para que el registro se complete, pero logueamos el error
     }
 
