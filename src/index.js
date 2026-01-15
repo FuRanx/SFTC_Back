@@ -42,5 +42,14 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Servidor funcionando correctamente' });
 });
 
+// Verificar configuración SMTP al iniciar (solo si está en producción o si se solicita)
+const emailService = require('./services/email.service');
+if (process.env.NODE_ENV === 'production' || process.env.VERIFY_SMTP_ON_START === 'true') {
+  // Verificar conexión SMTP después de unos segundos para no bloquear el inicio
+  setTimeout(async () => {
+    await emailService.verifyConnection();
+  }, 3000);
+}
+
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`✅ Servidor corriendo en puerto ${PORT}`));
