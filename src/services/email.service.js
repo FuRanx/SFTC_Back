@@ -1,31 +1,19 @@
 const nodemailer = require('nodemailer');
 
-// Configuración del transporter
-// Se recomienda usar variables de entorno para estos valores
-// const transporter = nodemailer.createTransport({
-//   host: process.env.SMTP_HOST,
-//   port: process.env.SMTP_PORT,
-//   secure: process.env.SMTP_SECURE === 'true', 
-//   auth: {
-//     user: process.env.SMTP_USER,
-//     pass: process.env.SMTP_PASS,
-//   },
-// });
-
 // Configuración del transporter mejorada para la nube
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",    // Host directo
-  port: 465,                 // Puerto 465 (SSL)
-  secure: true,              // TRUE es obligatorio para el puerto 465
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
-  family: 4,                 // <--- ¡ESTO ES LO QUE TE FALTA! Fuerza IPv4
+  family: 4,               // <--- ESTA LINEA ES LA CLAVE
   tls: {
-    rejectUnauthorized: false // Evita errores de certificados
+    rejectUnauthorized: false
   },
-  connectionTimeout: 10000   // 10 segundos de espera
+  connectionTimeout: 10000
 });
 
 /**
