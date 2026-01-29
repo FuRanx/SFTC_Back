@@ -1,21 +1,18 @@
 const nodemailer = require('nodemailer');
 
-// Configuración ESPECÍFICA para Outlook/Hotmail
+// Configuración del transporter mejorada para la nube
 const transporter = nodemailer.createTransport({
-  host: "smtp.office365.com",
-  port: 587,
-  secure: false, // Outlook usa STARTTLS, así que secure va en false
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
+  secure: process.env.SMTP_SECURE === 'true',
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
-  // Opciones de compatibilidad para Outlook
+  family: 4,               // <--- ESTA LINEA ES LA CLAVE
   tls: {
-    ciphers: 'SSLv3',
     rejectUnauthorized: false
   },
-  // CRÍTICO: Railway necesita forzar IPv4
-  family: 4,
   connectionTimeout: 10000
 });
 
@@ -26,47 +23,20 @@ const transporter = nodemailer.createTransport({
  * @param {string} html - Contenido HTML
  * @param {Array} attachments - Archivos adjuntos [{filename, content, contentType}]
  */
-// async function sendEmail(to, subject, html, attachments = []) {
-//   try {
-//     const mailOptions = {
-//       from: `"${process.env.SMTP_FROM_NAME || 'S.F.T.C.'}" <${process.env.SMTP_USER}>`,
-//       to,
-//       subject,
-//       html,
-//     };
-    
-//     // Agregar adjuntos si existen
-//     if (attachments && attachments.length > 0) {
-//       mailOptions.attachments = attachments.map(att => ({
-//         filename: att.filename,
-//         content: att.content, // Puede ser Buffer, Stream, o string
-//         contentType: att.contentType || undefined
-//       }));
-//     }
-    
-//     const info = await transporter.sendMail(mailOptions);
-//     console.log('Correo enviado: %s', info.messageId);
-//     return info;
-//   } catch (error) {
-//     console.error('Error enviando correo:', error);
-//     // No lanzamos el error para no interrumpir flujos principales si el correo falla,
-//     // pero podrías querer manejarlo diferente según el caso.
-//     return null;
-//   }
-// }
 async function sendEmail(to, subject, html, attachments = []) {
   try {
     const mailOptions = {
-      from: '"S.F.T.C." <jffs_2001@hotmail.com>', 
+      from: `"${process.env.SMTP_FROM_NAME || 'S.F.T.C.'}" <${process.env.SMTP_USER}>`,
       to,
       subject,
       html,
     };
     
+    // Agregar adjuntos si existen
     if (attachments && attachments.length > 0) {
       mailOptions.attachments = attachments.map(att => ({
         filename: att.filename,
-        content: att.content,
+        content: att.content, // Puede ser Buffer, Stream, o string
         contentType: att.contentType || undefined
       }));
     }
@@ -76,6 +46,8 @@ async function sendEmail(to, subject, html, attachments = []) {
     return info;
   } catch (error) {
     console.error('Error enviando correo:', error);
+    // No lanzamos el error para no interrumpir flujos principales si el correo falla,
+    // pero podrías querer manejarlo diferente según el caso.
     return null;
   }
 }
